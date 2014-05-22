@@ -1,0 +1,204 @@
+diff -rupN mutt-1.5.23-base/OPS mutt-1.5.23/OPS
+--- mutt-1.5.23-base/OPS	2014-03-12 17:03:44.000000000 +0100
++++ mutt-1.5.23/OPS	2014-05-22 11:58:57.000000000 +0200
+@@ -56,6 +56,7 @@ OP_DELETE_THREAD "delete all messages in
+ OP_DISPLAY_ADDRESS "display full address of sender"
+ OP_DISPLAY_HEADERS "display message and toggle header weeding"
+ OP_DISPLAY_MESSAGE "display a message"
++OP_EDIT_LABEL "add, change, or delete a message's label"
+ OP_EDIT_MESSAGE "edit the raw message"
+ OP_EDITOR_BACKSPACE "delete the char in front of the cursor"
+ OP_EDITOR_BACKWARD_CHAR "move the cursor one character to the left"
+diff -rupN mutt-1.5.23-base/PATCHES mutt-1.5.23/PATCHES
+--- mutt-1.5.23-base/PATCHES	2014-03-12 17:03:44.000000000 +0100
++++ mutt-1.5.23/PATCHES	2014-05-22 11:58:57.000000000 +0200
+@@ -0,0 +1 @@
++dgc.xlabel_ext.5
+diff -rupN mutt-1.5.23-base/copy.c mutt-1.5.23/copy.c
+--- mutt-1.5.23-base/copy.c	2014-03-12 17:06:17.000000000 +0100
++++ mutt-1.5.23/copy.c	2014-05-22 11:58:57.000000000 +0200
+@@ -111,6 +111,10 @@ mutt_copy_hdr (FILE *in, FILE *out, LOFF
+ 	ignore = 0;
+       }
+ 
++      if (flags & CH_UPDATE_LABEL &&
++	  mutt_strncasecmp ("X-Label:", buf, 8) == 0)
++	continue;
++
+       if (!ignore && fputs (buf, out) == EOF)
+ 	return (-1);
+     }
+@@ -302,6 +306,7 @@ mutt_copy_hdr (FILE *in, FILE *out, LOFF
+ 	  break;
+ 	}
+       }
++
+     }
+   }
+ 
+@@ -413,6 +418,14 @@ mutt_copy_header (FILE *in, HEADER *h, F
+       fprintf (out, "Lines: %d\n", h->lines);
+   }
+ 
++  if (flags & CH_UPDATE_LABEL && h->xlabel_changed)
++  {
++    if (h->env->x_label != NULL)
++      if (fprintf(out, "X-Label: %s\n", h->env->x_label) !=
++		  10 + strlen(h->env->x_label))
++        return -1;
++  }
++
+   if ((flags & CH_NONEWLINE) == 0)
+   {
+     if (flags & CH_PREFIX)
+@@ -493,6 +506,9 @@ _mutt_copy_message (FILE *fpout, FILE *f
+       _mutt_make_string (prefix, sizeof (prefix), NONULL (Prefix), Context, hdr, 0);
+   }
+ 
++  if (hdr->xlabel_changed)
++    chflags |= CH_UPDATE_LABEL;
++
+   if ((flags & M_CM_NOHEADER) == 0)
+   {
+     if (flags & M_CM_PREFIX)
+diff -rupN mutt-1.5.23-base/copy.h mutt-1.5.23/copy.h
+--- mutt-1.5.23-base/copy.h	2014-03-12 17:03:45.000000000 +0100
++++ mutt-1.5.23/copy.h	2014-05-22 12:00:07.000000000 +0200
+@@ -42,6 +42,8 @@
+ #define CH_PREFIX         (1<<5)  /* use Prefix string? */
+ #define CH_NOSTATUS       (1<<6)  /* suppress the status and x-status fields */
+ #define CH_REORDER        (1<<7)  /* Re-order output of headers */
++/* this absurd location to avoid conflict with cd.edit_threads -- *sigh* */
++#define CH_UPDATE_LABEL   (1<<20) /* update X-Label: from hdr->env->x_label? */
+ #define CH_NONEWLINE      (1<<8)  /* don't output terminating newline */
+ #define CH_MIME           (1<<9)  /* ignore MIME fields */
+ #define CH_UPDATE_LEN     (1<<10) /* update Lines: and Content-Length: */
+diff -rupN mutt-1.5.23-base/curs_main.c mutt-1.5.23/curs_main.c
+--- mutt-1.5.23-base/curs_main.c	2014-03-12 17:06:17.000000000 +0100
++++ mutt-1.5.23/curs_main.c	2014-05-22 11:58:57.000000000 +0200
+@@ -1947,6 +1947,21 @@ int mutt_index_menu (void)
+ 	menu->redraw = REDRAW_FULL;
+ 	break;
+ 
++      case OP_EDIT_LABEL:
++
++	CHECK_MSGCOUNT;
++	CHECK_READONLY;
++	rc = mutt_label_message(tag ? NULL : CURHDR);
++	if (rc > 0) {
++	  Context->changed = 1;
++	  menu->redraw = REDRAW_FULL;
++	  mutt_message ("%d label%s changed.", rc, rc == 1 ? "" : "s");
++	}
++	else {
++	  mutt_message _("No labels changed.");
++	}
++	break;
++
+       case OP_LIST_REPLY:
+ 
+ 	CHECK_ATTACH;
+diff -rupN mutt-1.5.23-base/functions.h mutt-1.5.23/functions.h
+--- mutt-1.5.23-base/functions.h	2014-03-12 17:03:45.000000000 +0100
++++ mutt-1.5.23/functions.h	2014-05-22 11:58:57.000000000 +0200
+@@ -99,6 +99,7 @@ const struct binding_t OpMain[] = { /* m
+   { "delete-thread",		OP_DELETE_THREAD,		"\004" },
+   { "delete-subthread",		OP_DELETE_SUBTHREAD,		"\033d" },
+   { "edit",			OP_EDIT_MESSAGE,		"e" },
++  { "edit-label",		OP_EDIT_LABEL,			"y" },
+   { "edit-type",		OP_EDIT_TYPE,			"\005" },
+   { "forward-message",		OP_FORWARD_MESSAGE,		"f" },
+   { "flag-message",		OP_FLAG_MESSAGE,		"F" },
+@@ -187,6 +188,7 @@ const struct binding_t OpPager[] = { /* 
+   { "set-flag",  	OP_MAIN_SET_FLAG,		"w" },
+   { "clear-flag",       OP_MAIN_CLEAR_FLAG,		"W" },
+   { "edit",		OP_EDIT_MESSAGE,		"e" },
++  { "edit-label",	OP_EDIT_LABEL,			"y" },
+   { "edit-type",	OP_EDIT_TYPE,			"\005" },
+   { "forward-message",	OP_FORWARD_MESSAGE,		"f" },
+   { "flag-message",	OP_FLAG_MESSAGE,		"F" },
+diff -rupN mutt-1.5.23-base/headers.c mutt-1.5.23/headers.c
+--- mutt-1.5.23-base/headers.c	2014-03-12 17:03:45.000000000 +0100
++++ mutt-1.5.23/headers.c	2014-05-22 11:58:57.000000000 +0200
+@@ -211,3 +211,59 @@ void mutt_edit_headers (const char *edit
+     }
+   }
+ }
++
++/*
++ * dgc: Add an X-Label: field.
++ */
++static int label_message(HEADER *hdr, char *new)
++{
++	if (hdr == NULL)
++		return 0;
++	if (hdr->env->x_label == NULL && new == NULL)
++		return 0;
++	if (hdr->env->x_label != NULL && new != NULL &&
++			strcmp(hdr->env->x_label, new) == 0)
++		return 0;
++	if (hdr->env->x_label != NULL)
++		FREE(&hdr->env->x_label);
++	if (new == NULL)
++		hdr->env->x_label = NULL;
++	else
++		hdr->env->x_label = safe_strdup(new);
++	return hdr->changed = hdr->xlabel_changed = 1;
++}
++
++int mutt_label_message(HEADER *hdr)
++{
++	char buf[LONG_STRING], *new;
++	int i;
++	int changed;
++
++	*buf = '\0';
++	if (hdr != NULL && hdr->env->x_label != NULL) {
++		strncpy(buf, hdr->env->x_label, LONG_STRING);
++	}
++
++	mutt_get_field("Label: ", buf, sizeof(buf), M_CLEAR);
++	new = buf;
++	SKIPWS(new);
++	if (*new == '\0')
++		new = NULL;
++
++	changed = 0;
++	if (hdr != NULL) {
++		changed += label_message(hdr, new);
++	} else {
++#define HDR_OF(index)	Context->hdrs[Context->v2r[(index)]]
++		for (i = 0; i < Context->vcount; ++i) {
++			if (HDR_OF(i)->tagged)
++				if (label_message(HDR_OF(i), new)) {
++					++changed;
++					mutt_set_flag(Context, HDR_OF(i),
++						M_TAG, 0);
++				}
++		}
++	}
++
++	return changed;
++}
+diff -rupN mutt-1.5.23-base/mutt.h mutt-1.5.23/mutt.h
+--- mutt-1.5.23-base/mutt.h	2014-03-12 17:06:17.000000000 +0100
++++ mutt-1.5.23/mutt.h	2014-05-22 11:58:57.000000000 +0200
+@@ -725,6 +725,7 @@ typedef struct header
+ 					 * This flag is used by the maildir_trash
+ 					 * option.
+ 					 */
++  unsigned int xlabel_changed : 1;	/* editable - used for syncing */
+   
+   /* timezone of the sender of this message */
+   unsigned int zhours : 5;
+diff -rupN mutt-1.5.23-base/protos.h mutt-1.5.23/protos.h
+--- mutt-1.5.23-base/protos.h	2014-03-12 17:06:17.000000000 +0100
++++ mutt-1.5.23/protos.h	2014-05-22 12:00:38.000000000 +0200
+@@ -183,6 +183,7 @@ void mutt_display_sanitize (char *);
+ void mutt_edit_content_type (HEADER *, BODY *, FILE *);
+ void mutt_edit_file (const char *, const char *);
+ void mutt_edit_headers (const char *, const char *, HEADER *, char *, size_t);
++int mutt_label_message (HEADER *);
+ int mutt_filter_unprintable (char **);
+ void mutt_curses_error (const char *, ...);
+ void mutt_curses_message (const char *, ...);

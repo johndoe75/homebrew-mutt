@@ -1,8 +1,17 @@
 # homebrew-mutt
 
-Convenience repo with my customizations to the mutt formula for homebrew.
+This repository was originally forked from
+[sgeb/homebrew-mutt](https://github.com/sgeb/homebrew-mutt).
 
-The following patches were added:
+-
+
+Convenience repository with additional features to the mutt formula for homebrew.  The following features are enabled with this formula:
+
+- [X-Label](http://home.uchicago.edu/~dgc/mutt/#x-label):
+  enable with `--with-xlabel-patch`.  Note that the original dgc patch was
+  adjusted to fit for mutt1.5.23.
+
+From sgeb's repository this formula provides:
 
 - [Sidebar](https://github.com/sgeb/homebrew-mutt/blob/master/patches/mutt-sidebar.patch):
   enable with `--with-sidebar-patch`.
@@ -22,7 +31,7 @@ The following patches were added:
   associated labels and make sure to disable `header_cache`. Labels 'Important'
   and 'Starred' are stripped from the list of labels. Note that Gmail Labels
   only work when directly connected to Gmail via IMAP.
-
+  
 ## How to install
 
 If you had previously installed the default homebrew mutt, you must uninstall
@@ -35,14 +44,32 @@ that version first:
 Then proceed with installation based on custom formula:
 
 ```bash
-> brew tap sgeb/mutt
+> brew tap johndoe75/mutt
 # There will be a warning regarding overriding existing formula 'mutt'
 
-> brew options sgeb/mutt/mutt
+> brew options johndoe75/mutt/mutt
 # List of available options
 
-> brew install sgeb/mutt/mutt --with-trash-patch \
-  --with-sidebar-patch --with-gmail-server-search-patch \
-  --with-trash-patch --with-gmail-labels-patch
+> brew install johndoe75/mutt/mutt \
+  --with-xlabel-patch \
+  --with-sidebar-patch \
+  --with-gmail-server-search-patch \
+  --with-gmail-labels-patch
 # Compile and install customized mutt
+```
+
+## muttrc
+
+Bind X-Label to a key for adding labels to messages.  E.g.
+
+```
+bind  index y           edit-label
+```
+
+I also like to see the label in message reader view:
+
+```
+ignore *
+unignore x-label
+hdr_order {replace with your setting} X-Label
 ```

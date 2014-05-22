@@ -26,14 +26,17 @@ class Mutt < Formula
     :because => 'both install mmdf.5 and mbox.5 man pages'
 
   option "with-debug", "Build with debug option enabled"
-  option "with-trash-patch", "Apply trash folder patch"
+  # disabled for now as patch cannot be fetched
+  #option "with-trash-patch", "Apply trash folder patch"
   option "with-s-lang", "Build against slang instead of ncurses"
   option "with-ignore-thread-patch", "Apply ignore-thread patch"
-  option "with-pgp-verbose-mime-patch", "Apply PGP verbose mime patch"
+  # disabled for now as patch cannot be fetched
+  #option "with-pgp-verbose-mime-patch", "Apply PGP verbose mime patch"
   option "with-confirm-attachment-patch", "Apply confirm attachment patch"
   option "with-sidebar-patch", "Apply sidebar patch"
   option "with-gmail-server-search-patch", "Apply gmail server search patch"
   option "with-gmail-labels-patch", "Apply gmail labels patch"
+  option "with-xlabel-patch", "Apply X-Label patch"
 
   depends_on 'openssl'
   depends_on 'tokyo-cabinet'
@@ -77,6 +80,11 @@ class Mutt < Formula
     sha1 "93a26c66ebd602775f879278c283ee524f477195"
   end if build.with? "gmail-labels-patch"
 
+  patch do
+    url "https://github.com/johndoe75/homebrew-mutt/raw/069a6a2ffafbed0ad744e68bb2c0139678e72532/patches/patch-1.5.23.dgc.xlabel_ext.5"
+    sha1 "606bc61b50701957f24ecbe491b792f71b046709"
+  end if build.with? "xlabel-patch"
+
   def install
     args = ["--disable-dependency-tracking",
             "--disable-warnings",
@@ -89,6 +97,8 @@ class Mutt < Formula
             "--enable-pop",
             "--enable-hcache",
             "--with-tokyocabinet",
+	    "--enable-mailtool",
+	    "--with-regex",
             # This is just a trick to keep 'make install' from trying to chgrp
             # the mutt_dotlock file (which we can't do if we're running as an
             # unpriviledged user)
