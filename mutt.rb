@@ -1,10 +1,18 @@
-require 'formula'
+# My mutt version including xlabel patch
 
 class Mutt < Formula
-  homepage 'http://www.mutt.org/'
-  url 'ftp://ftp.mutt.org/mutt/mutt-1.5.23.tar.gz'
-  mirror 'http://fossies.org/linux/misc/mutt-1.5.23.tar.gz'
-  sha1 '8ac821d8b1e25504a31bf5fda9c08d93a4acc862'
+  desc "Mongrel of mail user agents (part elm, pine, mush, mh, etc.)"
+  homepage "http://www.mutt.org/"
+  url "ftp://ftp.mutt.org/pub/mutt/mutt-1.7.0.tar.gz"
+  mirror "https://fossies.org/linux/misc/mutt-1.7.0.tar.gz"
+  sha256 "1d3e987433d8c92ef88a604f4dcefdb35a86ce73f3eff0157e2e491e5b55b345"
+
+  bottle do
+    sha256 "32cc7f3bc105d83e94cb5f13afbda897e6486504c91a7559fe2e06af0cd0f45b" => :sierra
+    sha256 "d6d8b79f1b714d1d6f94b82e81825958ea7aa507fa47d8aacdf9bee93132d5b7" => :el_capitan
+    sha256 "90db768f00dc9d6c8e96a98f5d8f5a74c605b5bc46ea98871d99611da25184fb" => :yosemite
+    sha256 "63d588e1c1487ff6bfffc51180ff644307ffc8e6463436b9a001706dffcc1368" => :mavericks
+  end
 
   head do
     url 'http://dev.mutt.org/hg/mutt#default', :using => :hg
@@ -12,114 +20,96 @@ class Mutt < Formula
     resource 'html' do
       url 'http://dev.mutt.org/doc/manual.html', :using => :nounzip
     end
-
-    depends_on :autoconf
-    depends_on :automake
   end
-
-  unless Tab.for_name('signing-party').used_options.include? 'with-rename-pgpring'
-    conflicts_with 'signing-party',
-      :because => 'mutt installs a private copy of pgpring'
-  end
-
-  conflicts_with 'tin',
-    :because => 'both install mmdf.5 and mbox.5 man pages'
 
   option "with-debug", "Build with debug option enabled"
-  # disabled for now as patch cannot be fetched
-  #option "with-trash-patch", "Apply trash folder patch"
   option "with-s-lang", "Build against slang instead of ncurses"
-  option "with-ignore-thread-patch", "Apply ignore-thread patch"
-  # disabled for now as patch cannot be fetched
-  #option "with-pgp-verbose-mime-patch", "Apply PGP verbose mime patch"
-  option "with-confirm-attachment-patch", "Apply confirm attachment patch"
-  option "with-sidebar-patch", "Apply sidebar patch"
-  option "with-gmail-server-search-patch", "Apply gmail server search patch"
+  # --> Added patches
+  option "with-pgp-verbose-mime-patch" "Apply pgp-verbose-mime-patch"
   option "with-gmail-labels-patch", "Apply gmail labels patch"
   option "with-xlabel-patch", "Apply X-Label patch"
+  # <-- Added patches
 
-  depends_on 'openssl'
-  depends_on 'tokyo-cabinet'
-  depends_on 's-lang' => :optional
-  depends_on 'gpgme' => :optional
+  depends_on "autoconf" => :build
+  depends_on "automake" => :build
+  depends_on "openssl"
+  depends_on "tokyo-cabinet"
+  depends_on "gettext" => :optional
+  depends_on "gpgme" => :optional
+  depends_on "libidn" => :optional
+  depends_on "s-lang" => :optional
 
-  patch do
-    url "http://patch-tracker.debian.org/patch/series/dl/mutt/1.5.21-6.2+deb7u1/features/trash-folder"
-    sha1 "6c8ce66021d89a063e67975a3730215c20cf2859"
-  end if build.with? "trash-patch"
+  conflicts_with "tin",
+    :because => "both install mmdf.5 and mbox.5 man pages"
+
+  conflicts_with "mutt", :because => "both install mutt binaries"
 
   # original source for this went missing, patch sourced from Arch at
-  # https://aur.archlinux.org/packages/mutt-ignore-thread/
   patch do
-    url "https://gist.github.com/mistydemeo/5522742/raw/1439cc157ab673dc8061784829eea267cd736624/ignore-thread-1.5.21.patch"
-    sha1 "dbcf5de46a559bca425028a18da0a63d34f722d3"
-  end if build.with? "ignore-thread-patch"
-
-  patch do
-    url "http://patch-tracker.debian.org/patch/series/dl/mutt/1.5.21-6.2+deb7u1/features-old/patch-1.5.4.vk.pgp_verbose_mime"
-    sha1 "a436f967aa46663cfc9b8933a6499ca165ec0a21"
+    url "https://raw.githubusercontent.com/sgeb/homebrew-mutt/master/patches/13-pgp-verbose-mime.patch"
+    sha256 "ef9c19d4115a4d4a95af5a78cac2d7788592edc547e1fd9b0fe40f4ab04e1698"
   end if build.with? "pgp-verbose-mime-patch"
 
   patch do
-    url "https://gist.github.com/tlvince/5741641/raw/c926ca307dc97727c2bd88a84dcb0d7ac3bb4bf5/mutt-attach.patch"
-    sha1 "94da52d50508d8951aa78ca4b073023414866be1"
-  end if build.with? "confirm-attachment-patch"
-
-  patch do
-    url "https://github.com/sgeb/homebrew-mutt/raw/c68c72bf2824b571b56c63aee597a43fb12b7705/patches/mutt-sidebar.patch"
-    sha1 "1e151d4ff3ce83d635cf794acf0c781e1b748ff1"
-  end if build.with? "sidebar-patch"
-
-  patch :p0 do
-    url "https://github.com/sgeb/homebrew-mutt/raw/c68c72bf2824b571b56c63aee597a43fb12b7705/patches/patch-mutt-gmailcustomsearch.v1.patch"
-    sha1 "851051cd37778d71a86510a888d4572475ed269d"
-  end if build.with? "gmail-server-search-patch"
-
-  patch do
-    url "https://github.com/sgeb/homebrew-mutt/raw/231547c95422db3aa834383fd01f1464f99db228/patches/mutt-1.5.23-gmail-labels.sgeb.v1.patch"
-    sha1 "93a26c66ebd602775f879278c283ee524f477195"
+    url "https://raw.githubusercontent.com/johndoe75/homebrew-mutt-patched/devel/patches/mutt-1.5.23-gmail-labels.sgeb.v1.patch"
+    sha256 "2b80584e0e799d798f250f6559d6f9bb517ac4a7c47e739318eb8263c8f67a7c"
   end if build.with? "gmail-labels-patch"
 
   patch do
-    url "https://github.com/johndoe75/homebrew-mutt/raw/069a6a2ffafbed0ad744e68bb2c0139678e72532/patches/patch-1.5.23.dgc.xlabel_ext.5"
-    sha1 "606bc61b50701957f24ecbe491b792f71b046709"
+    url "https://raw.githubusercontent.com/johndoe75/homebrew-mutt-patched/master/patches/patch-1.7.1.xlabel"
+    sha256 "7b33a445c49097f9967d6366998a8e47b20d75e19501c82221899386046e9632"
   end if build.with? "xlabel-patch"
 
   def install
-    args = ["--disable-dependency-tracking",
-            "--disable-warnings",
-            "--prefix=#{prefix}",
-            "--with-ssl=#{Formula['openssl'].opt_prefix}",
-            "--with-sasl",
-            "--with-gss",
-            "--enable-imap",
-            "--enable-smtp",
-            "--enable-pop",
-            "--enable-hcache",
-            "--with-tokyocabinet",
-	    "--enable-mailtool",
-	    "--with-regex",
-            # This is just a trick to keep 'make install' from trying to chgrp
-            # the mutt_dotlock file (which we can't do if we're running as an
-            # unpriviledged user)
-            "--with-homespool=.mbox"]
-    args << "--with-slang" if build.with? 's-lang'
-    args << "--enable-gpgme" if build.with? 'gpgme'
+    user_admin = Etc.getgrnam("admin").mem.include?(ENV["USER"])
 
-    if build.with? 'debug'
+    args = %W[
+      --disable-dependency-tracking
+      --disable-warnings
+      --prefix=#{prefix}
+      --with-ssl=#{Formula["openssl"].opt_prefix}
+      --with-sasl
+      --with-gss
+      --enable-imap
+      --enable-smtp
+      --enable-pop
+      --enable-hcache
+      --with-tokyocabinet
+      --enable-sidebar
+      --enable-mailtool
+      --with-regex
+    ]
+
+    # This is just a trick to keep 'make install' from trying
+    # to chgrp the mutt_dotlock file (which we can't do if
+    # we're running as an unprivileged user)
+    args << "--with-homespool=.mbox" unless user_admin
+
+    args << "--disable-nls" if build.without? "gettext"
+    args << "--enable-gpgme" if build.with? "gpgme"
+    args << "--with-slang" if build.with? "s-lang"
+
+    if build.with? "debug"
       args << "--enable-debug"
     else
       args << "--disable-debug"
     end
 
-    if build.head?
-      system "./prepare", *args
-    else
-      system "./configure", *args
-    end
+    system "./prepare", *args
     system "make"
-    system "make", "install"
 
-    (share/'doc/mutt').install resource('html') if build.head?
+    # This permits the `mutt_dotlock` file to be installed under a group
+    # that isn't `mail`.
+    # https://github.com/Homebrew/homebrew/issues/45400
+    if user_admin
+      inreplace "Makefile", /^DOTLOCK_GROUP =.*$/, "DOTLOCK_GROUP = admin"
+    end
+
+    system "make", "install"
+    doc.install resource("html") if build.head?
+  end
+
+  test do
+    system bin/"mutt", "-D"
   end
 end

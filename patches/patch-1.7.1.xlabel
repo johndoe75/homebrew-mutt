@@ -58,9 +58,9 @@ diff -rupN mutt-1.5.23-base/copy.c mutt-1.5.23/copy.c
 +  if (hdr->xlabel_changed)
 +    chflags |= CH_UPDATE_LABEL;
 +
-   if ((flags & M_CM_NOHEADER) == 0)
+   if ((flags & MUTT_CM_NOHEADER) == 0)
    {
-     if (flags & M_CM_PREFIX)
+     if (flags & MUTT_CM_PREFIX)
 diff -rupN mutt-1.5.23-base/copy.h mutt-1.5.23/copy.h
 --- mutt-1.5.23-base/copy.h	2014-03-12 17:03:45.000000000 +0100
 +++ mutt-1.5.23/copy.h	2014-05-22 12:00:07.000000000 +0200
@@ -157,7 +157,7 @@ diff -rupN mutt-1.5.23-base/headers.c mutt-1.5.23/headers.c
 +		strncpy(buf, hdr->env->x_label, LONG_STRING);
 +	}
 +
-+	mutt_get_field("Label: ", buf, sizeof(buf), M_CLEAR);
++	mutt_get_field("Label: ", buf, sizeof(buf), MUTT_CLEAR);
 +	new = buf;
 +	SKIPWS(new);
 +	if (*new == '\0')
@@ -173,7 +173,7 @@ diff -rupN mutt-1.5.23-base/headers.c mutt-1.5.23/headers.c
 +				if (label_message(HDR_OF(i), new)) {
 +					++changed;
 +					mutt_set_flag(Context, HDR_OF(i),
-+						M_TAG, 0);
++						MUTT_TAG, 0);
 +				}
 +		}
 +	}
