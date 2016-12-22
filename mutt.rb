@@ -5,7 +5,7 @@ class Mutt < Formula
   homepage "http://www.mutt.org/"
   url "ftp://ftp.mutt.org/pub/mutt/mutt-1.7.2.tar.gz"
   mirror "https://fossies.org/linux/misc/mutt-1.7.2.tar.gz/"
-  sha256 "39be2b552b99ed16f263487017c68cdbc1c7b384"
+  sha256 "1553501687cd22d5b8aaee4dc5a7d9dcf6cc61d7956f6aabaadd252d10cd5ff9"
 
   bottle do
     sha256 "32cc7f3bc105d83e94cb5f13afbda897e6486504c91a7559fe2e06af0cd0f45b" => :sierra
